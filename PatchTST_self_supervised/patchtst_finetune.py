@@ -29,7 +29,7 @@ parser.add_argument('--target_points', type=int, default=96, help='forecast hori
 parser.add_argument('--batch_size', type=int, default=64, help='batch size')
 parser.add_argument('--num_workers', type=int, default=0, help='number of workers for DataLoader')
 parser.add_argument('--scaler', type=str, default='standard', help='scale the input data')
-parser.add_argument('--features', type=str, default='M', help='for multivariate model or univariate model')
+parser.add_argument('--features', type=str, default='S', help='for multivariate model or univariate model')
 # Patch
 parser.add_argument('--patch_len', type=int, default=12, help='patch length')
 parser.add_argument('--stride', type=int, default=12, help='stride between patch')
@@ -50,6 +50,9 @@ parser.add_argument('--pretrained_model', type=str, default=None, help='pretrain
 # model id to keep track of the number of models saved
 parser.add_argument('--finetuned_model_id', type=int, default=1, help='id of the saved finetuned model')
 parser.add_argument('--model_type', type=str, default='based_model', help='for multivariate model or univariate model')
+# 新添加
+parser.add_argument('--multi_dset', type=str, default=None)
+parser.add_argument('--device', type=int, default=0)
 
 
 args = parser.parse_args()
@@ -64,7 +67,7 @@ elif args.is_linear_probe: args.save_finetuned_model = args.dset_finetune+'_patc
 else: args.save_finetuned_model = args.dset_finetune+'_patchtst_finetuned'+suffix_name
 
 # get available GPU devide
-set_device()
+set_device(device=args.device)
 
 def get_model(c_in, args, head_type, weight_path=None):
     """

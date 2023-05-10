@@ -15,6 +15,7 @@ from src.callback.patch_mask import *
 from src.callback.transforms import *
 from src.metrics import *
 from datautils import get_dls
+from src.basics import set_device
 
 
 import argparse
@@ -25,7 +26,7 @@ parser.add_argument('--dset', type=str, default='etth1', help='dataset name')
 parser.add_argument('--context_points', type=int, default=336, help='sequence length')
 parser.add_argument('--target_points', type=int, default=96, help='forecast horizon')
 parser.add_argument('--batch_size', type=int, default=64, help='batch size')
-parser.add_argument('--num_workers', type=int, default=1, help='number of workers for DataLoader')
+parser.add_argument('--num_workers', type=int, default=0, help='number of workers for DataLoader')
 parser.add_argument('--scaler', type=str, default='standard', help='scale the input data')
 parser.add_argument('--features', type=str, default='M', help='for multivariate model or univariate model')
 parser.add_argument('--use_time_features', type=int, default=0, help='whether to use time features or not')
@@ -57,6 +58,8 @@ args.save_model_name = 'patchtst_supervised'+'_cw'+str(args.context_points)+'_tw
 args.save_path = 'saved_models/' + args.dset + '/patchtst_supervised/' + args.model_type + '/'
 if not os.path.exists(args.save_path): os.makedirs(args.save_path)
 
+# get available GPU devide
+set_device(device=5)
 
 def get_model(c_in, args):
     """

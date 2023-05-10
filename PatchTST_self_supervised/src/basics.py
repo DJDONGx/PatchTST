@@ -43,8 +43,11 @@ def get_device(use_cuda=True, device_id=None, usage=5):
     return torch.device(torch.cuda.current_device()) if use_cuda else torch.device('cpu')
 
 
-def set_device(usage=5):    
+def set_device(usage=5, device=None):
     "set the device that has usage < default usage  "
+    if device:
+        torch.cuda.set_device(device)
+        return
     device_ids = get_available_cuda(usage=usage)
     torch.cuda.set_device(device_ids[0])   # get the first available device
 

@@ -26,7 +26,7 @@ parser.add_argument('--target_points', type=int, default=96, help='forecast hori
 parser.add_argument('--batch_size', type=int, default=64, help='batch size')
 parser.add_argument('--num_workers', type=int, default=0, help='number of workers for DataLoader')
 parser.add_argument('--scaler', type=str, default='standard', help='scale the input data')
-parser.add_argument('--features', type=str, default='M', help='for multivariate model or univariate model')
+parser.add_argument('--features', type=str, default='S', help='for multivariate model or univariate model')
 # Patch
 parser.add_argument('--patch_len', type=int, default=12, help='patch length')
 parser.add_argument('--stride', type=int, default=12, help='stride between patch')
@@ -42,22 +42,35 @@ parser.add_argument('--head_dropout', type=float, default=0.2, help='head dropou
 # Pretrain mask
 parser.add_argument('--mask_ratio', type=float, default=0.4, help='masking ratio for the input')
 # Optimization args
-parser.add_argument('--n_epochs_pretrain', type=int, default=10, help='number of pre-training epochs')
+parser.add_argument('--n_epochs_pretrain', type=int, default=20, help='number of pre-training epochs')
 parser.add_argument('--lr', type=float, default=1e-4, help='learning rate')
 # model id to keep track of the number of models saved
 parser.add_argument('--pretrained_model_id', type=int, default=1, help='id of the saved pretrained model')
 parser.add_argument('--model_type', type=str, default='based_model', help='for multivariate model or univariate model')
+# 新添加
+parser.add_argument('--multi_dset', type=str, default=None)
+parser.add_argument('--device', type=int, default=0)
 
 
 args = parser.parse_args()
 print('args:', args)
+
 args.save_pretrained_model = 'patchtst_pretrained_cw'+str(args.context_points)+'_patch'+str(args.patch_len) + '_stride'+str(args.stride) + '_epochs-pretrain' + str(args.n_epochs_pretrain) + '_mask' + str(args.mask_ratio)  + '_model' + str(args.pretrained_model_id)
-args.save_path = 'saved_models/' + args.dset_pretrain + '/masked_patchtst/' + args.model_type + '/'
+if args.multi_dset:
+    args.save_path = 'saved_models/' + args.multi_dset + '/masked_patchtst/' + args.model_type + '/'
+else:
+    args.save_path = 'saved_models/' + args.dset_pretrain + '/masked_patchtst/' + args.model_type + '/'
+
+# 多数据集
+if args.multi_dset:
+    args.multi_dset = args.multi_dset.split('_')
+
+print(args.save_path + args.save_pretrained_model)
 if not os.path.exists(args.save_path): os.makedirs(args.save_path)
 
 
 # get available GPU devide
-set_device()
+set_device(device=args.device)
 
 
 def get_model(c_in, args):
@@ -115,6 +128,7 @@ def find_lr():
 def pretrain_func(lr=args.lr):
     # get dataloader
     dls = get_dls(args)
+
     # get model     
     model = get_model(dls.vars, args)
     # get loss

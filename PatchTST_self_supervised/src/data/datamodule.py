@@ -1,7 +1,7 @@
 import warnings
 
 import torch
-from torch.utils.data import DataLoader
+from torch.utils.data import DataLoader, ConcatDataset
 
 
 class DataLoaders:
@@ -13,32 +13,51 @@ class DataLoaders:
         workers: int=0,
         collate_fn=None,
         shuffle_train = True,
-        shuffle_val = False
+        shuffle_val = False,
+        use_multi_dset = False,
     ):
         super().__init__()
-        self.datasetCls = datasetCls
+
+        self.use_multi_dset = use_multi_dset
+        if self.use_multi_dset:
+            self.datasetCls_list = datasetCls
+            self.dataset_kwargs_list = dataset_kwargs
+            for dataset_kwargs in self.dataset_kwargs_list:
+                if "split" in dataset_kwargs.keys():
+                    del dataset_kwargs["split"]
+        else:
+            self.datasetCls = datasetCls
+            if "split" in dataset_kwargs.keys():
+                del dataset_kwargs["split"]
+            self.dataset_kwargs = dataset_kwargs
         self.batch_size = batch_size
-        
-        if "split" in dataset_kwargs.keys():
-            del dataset_kwargs["split"]
-        self.dataset_kwargs = dataset_kwargs
         self.workers = workers
         self.collate_fn = collate_fn
         self.shuffle_train, self.shuffle_val = shuffle_train, shuffle_val
-    
+
+
         self.train = self.train_dataloader()
         self.valid = self.val_dataloader()
         self.test = self.test_dataloader()        
  
         
     def train_dataloader(self):
-        return self._make_dloader("train", shuffle=self.shuffle_train)
+        if self.use_multi_dset:
+            return self._make_multi_dloader("train", shuffle=self.shuffle_train)
+        else:
+            return self._make_dloader("train", shuffle=self.shuffle_train)
 
-    def val_dataloader(self):        
-        return self._make_dloader("val", shuffle=self.shuffle_val)
+    def val_dataloader(self):
+        if self.use_multi_dset:
+            return self._make_multi_dloader("val", shuffle=self.shuffle_val)
+        else:
+            return self._make_dloader("val", shuffle=self.shuffle_val)
 
     def test_dataloader(self):
-        return self._make_dloader("test", shuffle=False)
+        if self.use_multi_dset:
+            return self._make_multi_dloader("test", shuffle=False)
+        else:
+            return self._make_dloader("test", shuffle=False)
 
     def _make_dloader(self, split, shuffle=False):
         dataset = self.datasetCls(**self.dataset_kwargs, split=split)
@@ -50,6 +69,32 @@ class DataLoaders:
             num_workers=self.workers,
             collate_fn=self.collate_fn,
         )
+
+
+    def _make_multi_dloader(self, split, shuffle=False):
+        dataset_list = []
+        for i in range(len(self.datasetCls_list)):
+            dataset = self.datasetCls_list[i](**self.dataset_kwargs_list[i], split=split)
+            dataset_list.append(dataset)
+        # print("每个数据集的patch数量")
+        # for i in dataset_list:
+        #     print(len(i))
+        concat_dataset = ConcatDataset(dataset_list)
+        # print("合并数据集的patch数量")
+        # print(len(concat_dataset))
+
+        # a = dataset_list[1][len(dataset_list[1]) - 1]
+        # b = concat_dataset[-1]
+        # print((a[0] == b[0]).all())
+        # exit()
+        return DataLoader(
+            concat_dataset,
+            shuffle=shuffle,
+            batch_size=self.batch_size,
+            num_workers=self.workers,
+            collate_fn=self.collate_fn,
+        )
+
 
     @classmethod
     def add_cli(self, parser):
